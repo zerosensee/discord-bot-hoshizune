@@ -22,6 +22,14 @@ class Environment {
       (await import('dotenv')).config();
     }
 
+    if (!process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_TOKEN) {
+      process.env.DISCORD_BOT_TOKEN = process.env.DISCORD_TOKEN;
+    }
+
+    if (!process.env.DISCORD_APPLICATION_ID && process.env.CLIENT_ID) {
+      process.env.DISCORD_APPLICATION_ID = process.env.CLIENT_ID;
+    }
+
     const variables = plainToInstance(EnvVariables, process.env);
     const errors = await validate(variables, { skipMissingProperties: false });
 
