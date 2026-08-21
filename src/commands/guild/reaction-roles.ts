@@ -124,34 +124,44 @@ export default class ReactionRolesCommand extends SlashCommand {
       );
     }
 
-    // Авто-поиск сообщения по заголовку эмбеда в канале, если оно не было найдено в БД
-    if (!managedMessage) {
-      const recentMessages = await (
-        targetChannel as GuildTextBasedChannel
-      ).messages
-        .fetch({ limit: 30 })
-        .catch(() => null);
+    // Сбор ролей из ВСЕХ сообщений бота с реактивными ролями в канале
+    const recentMessages = await (
+      targetChannel as GuildTextBasedChannel
+    ).messages
+      .fetch({ limit: 50 })
+      .catch(() => null);
 
-      if (recentMessages) {
-        managedMessage =
-          recentMessages.find(
-            (m) =>
-              m.author.id === botClient.user?.id &&
-              m.embeds.some((e) =>
-                e.title?.toLowerCase().includes('роли по реакциям'),
-              ),
-          ) ?? null;
+    let allEmbedMappings: RoleEmojiMappings = {};
+
+    if (recentMessages) {
+      const botMessages = Array.from(recentMessages.values())
+        .filter(
+          (m) =>
+            m.author.id === botClient.user?.id &&
+            m.embeds.some((e) =>
+              e.title?.toLowerCase().includes('роли по реакциям'),
+            ),
+        )
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+      // Считываем роли начиная от самого старого сообщения к самому новому
+      for (const msg of botMessages) {
+        if (msg.embeds[0]?.description) {
+          const parsed = parseMappingsFromText(msg.embeds[0].description);
+          allEmbedMappings = { ...allEmbedMappings, ...parsed };
+        }
+      }
+
+      // В качестве основного сообщения берем самое свежее (или указанное пользователем)
+      if (!managedMessage && botMessages.length > 0) {
+        managedMessage = botMessages[botMessages.length - 1];
       }
     }
 
-    let mappings = toMappingsRecord(existing?.mappings);
-
-    if (managedMessage?.embeds[0]?.description) {
-      const parsedFromEmbed = parseMappingsFromText(
-        managedMessage.embeds[0].description,
-      );
-      mappings = { ...parsedFromEmbed, ...mappings };
-    }
+    let mappings = {
+      ...allEmbedMappings,
+      ...toMappingsRecord(existing?.mappings),
+    };
 
     if (!managedMessage || managedMessage.channelId !== targetChannelId) {
       managedMessage = await (targetChannel as GuildTextBasedChannel).send(
