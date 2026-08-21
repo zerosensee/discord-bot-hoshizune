@@ -42,15 +42,15 @@ export default new Event(
 
     if (!emojiId) return;
 
-    // Find guild in database to get internal UUID
-    const dbGuild = await botClient.database.guild.findUnique({
+    // Поиск или автоматическое создание сервера в базе данных
+    const dbGuild = await botClient.database.guild.upsert({
       where: { discordId: guild.id },
+      create: { discordId: guild.id },
+      update: {},
       select: { id: true },
     });
 
-    if (!dbGuild) return;
-
-    // Find reaction role message in database
+    // Поиск маппинга реактивных ролей для сообщения
     const reactionRoleMessage =
       await botClient.database.reactionRoleMessage.findUnique({
         where: {
@@ -62,7 +62,12 @@ export default new Event(
         },
       });
 
-    if (!reactionRoleMessage) return;
+    if (!reactionRoleMessage) {
+      botClient.logger.info(
+        `Реакция проигнорирована: сообщение ${reaction.message.id} не зарегистрировано через /reaction-roles в базе данных.`,
+      );
+      return;
+    }
 
     const mappings =
       reactionRoleMessage.mappings as Record<
@@ -79,17 +84,17 @@ export default new Event(
 
       if (!role) {
         botClient.logger.warn(
-          `Role ${roleId} not found in guild ${guild.id}`,
+          `Роль ${roleId} не найдена на сервере ${guild.name} (${guild.id})`,
         );
         return;
       }
 
       await member.roles.add(role);
       botClient.logger.info(
-        `Added role ${role.name} to user ${user.tag} in guild ${guild.name}`,
+        `Роль "${role.name}" успешно выдана пользователю ${user.tag} на сервере "${guild.name}"`,
       );
     } catch (error) {
-      botClient.logger.error('Error adding role', error);
+      botClient.logger.error('Ошибка при выдаче роли по реакции', error);
     }
   },
 );

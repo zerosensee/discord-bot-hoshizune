@@ -42,15 +42,15 @@ export default new Event(
 
     if (!emojiId) return;
 
-    // Find guild in database to get internal UUID
-    const dbGuild = await botClient.database.guild.findUnique({
+    // Поиск или автоматическое создание сервера в базе данных
+    const dbGuild = await botClient.database.guild.upsert({
       where: { discordId: guild.id },
+      create: { discordId: guild.id },
+      update: {},
       select: { id: true },
     });
 
-    if (!dbGuild) return;
-
-    // Find reaction role message in database
+    // Поиск маппинга реактивных ролей для сообщения
     const reactionRoleMessage =
       await botClient.database.reactionRoleMessage.findUnique({
         where: {
@@ -79,17 +79,17 @@ export default new Event(
 
       if (!role) {
         botClient.logger.warn(
-          `Role ${roleId} not found in guild ${guild.id}`,
+          `Роль ${roleId} не найдена на сервере ${guild.name} (${guild.id})`,
         );
         return;
       }
 
       await member.roles.remove(role);
       botClient.logger.info(
-        `Removed role ${role.name} from user ${user.tag} in guild ${guild.name}`,
+        `Роль "${role.name}" успешно снята у пользователя ${user.tag} на сервере "${guild.name}"`,
       );
     } catch (error) {
-      botClient.logger.error('Error removing role', error);
+      botClient.logger.error('Ошибка при снятии роли по реакции', error);
     }
   },
 );
