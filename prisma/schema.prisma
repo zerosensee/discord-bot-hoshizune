@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Модель сервера Discord с изолированной таблицей hoshizune_guilds
+model Guild {
+  id String @id @default(uuid())
+
+  discordId String @unique @map("discord_id")
+
+  autoRole String[] @map("auto_role")
+
+  reactionRoleMessages ReactionRoleMessage[]
+
+  statsChannelId String?        @map("stats_channel_id")
+  channelStats   ChannelStats[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("hoshizune_guilds")
+}
+
+/// Сообщение с реактивными ролями: хранит канал, сообщение и маппинг эмодзи→роль
+model ReactionRoleMessage {
+  id        String @id @default(uuid())
+  guildId   String @map("guild_id")
+  channelId String @map("channel_id")
+  messageId String @map("message_id")
+
+  /// JSON-объект вида { "emojiIdentifier": "roleId" }
+  mappings Json @default("{}")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, channelId, messageId])
+  @@index([guildId])
+  @@index([channelId])
+  @@map("hoshizune_reaction_role_messages")
+}
+
+/// Статистика сообщений по каналам для каждого дня
+model ChannelStats {
+  id        String @id @default(uuid())
+  guildId   String @map("guild_id")
+  channelId String @map("channel_id")
+
+  /// Дата без учета времени (ГГГГ-ММ-ДД)
+  date DateTime @default(now()) @db.Date
+
+  /// Количество сообщений за этот день
+  count Int @default(0)
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, channelId, date])
+  @@index([guildId])
+  @@index([date])
+  @@index([guildId, date])
+  @@map("hoshizune_channel_stats")
+}

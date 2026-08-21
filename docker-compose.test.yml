@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: discord-bot-hoshizune-postgres-test
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: discord_bot_hoshizune_test
+    ports:
+      - "${POSTGRES_PORT:-2406}:5432"
+    volumes:
+      - discord_bot_hoshizune_postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  discord_bot_hoshizune_postgres_test_data:

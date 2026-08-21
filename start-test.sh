@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "Starting PostgreSQL container for testing..."
+docker-compose -f docker-compose.test.yml up -d
+
+echo "Waiting for database to be ready..."
+sleep 3
+
+echo "Installing dependencies..."
+yarn install
+
+echo "Applying database migrations..."
+yarn deploy
+
+echo "Starting bot in development mode..."
+yarn dev

@@ -1,0 +1,43 @@
+{
+  "name": "hoshizune-bot",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "yarn@4.9.1",
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "start": "cross-env NODE_ENV=production node -r tsconfig-paths/register dist/index",
+    "dev": "nodemon --config ./nodemon.json",
+    "rest": "nodemon --config ./nodemon.json --rest",
+    "deploy": "prisma migrate deploy",
+    "lint": "eslint . --fix",
+    "format": "prettier --write .",
+    "pretty": "prettier --write . && eslint . --fix",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.8.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "discord.js": "^14.19.3",
+    "nekos-best.js": "^6.4.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^4.13.2",
+    "@eslint/js": "^9.27.0",
+    "@types/node": "22.14.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
+    "eslint": "^9.27.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.3",
+    "prisma": "^6.8.2",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.0"
+  }
+}

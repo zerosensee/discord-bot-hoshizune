@@ -1,0 +1,63 @@
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Compiled output
+build
+dist
+node_modules
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and editors
+.c9/
+.classpath
+/.idea
+*.launch
+.project
+.settings/
+*.sublime-workspace
+
+# VSCode
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.vscode/*
+
+# Env files
+.env
+.env.development.local
+.env.local
+.env.production.local
+.env.test.local
+
+# Runtime data
+*.pid
+*.pid.lock
+pids
+*.seed
+
+# Temp directory
+.temp
+.tmp
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Prisma
+/prisma/generated
+
+# Docker
+/data
+.env.example

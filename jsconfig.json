@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["dist/*"],
+      "@prisma/generated": ["./prisma/generated"],
+      "@prisma/generated/*": ["./prisma/generated/*"]
+    }
+  }
+}

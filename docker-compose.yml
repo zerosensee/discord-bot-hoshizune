@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: discord-bot-hoshizune-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: discord_bot_hoshizune
+    ports:
+      - "${POSTGRES_PORT:-2406}:5432"
+    volumes:
+      - discord_bot_hoshizune_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d discord_bot_hoshizune"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - discord-bot-hoshizune-net
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: discord-bot-hoshizune-bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/discord_bot_hoshizune
+    networks:
+      - discord-bot-hoshizune-net
+
+networks:
+  discord-bot-hoshizune-net:
+    driver: bridge
+
+volumes:
+  discord_bot_hoshizune_postgres_data:
