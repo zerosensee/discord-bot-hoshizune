@@ -32,9 +32,17 @@ export default class ReactionRolesCommand extends SlashCommand {
           option
             .setName('channel_id')
             .setDescription(
-              'ID of channel where bot creates/updates reaction-role message',
+              'ID канала, где находится или создается сообщение с ролями',
             )
             .setRequired(true),
+        )
+        .addStringOption((option) =>
+          option
+            .setName('message_id')
+            .setDescription(
+              'ID существующего сообщения с ролями (необязательно)',
+            )
+            .setRequired(false),
         )
         .setContexts([InteractionContextType.Guild])
         .setDefaultMemberPermissions(
@@ -55,6 +63,10 @@ export default class ReactionRolesCommand extends SlashCommand {
     const channelIdRaw =
       interaction.options.getString('channel_id') ?? '';
     const targetChannelId = channelIdRaw.replace(/\D/g, '');
+
+    const messageIdRaw =
+      interaction.options.getString('message_id') ?? '';
+    const specifiedMessageId = messageIdRaw.replace(/\D/g, '');
 
     if (!targetChannelId) {
       await interaction.editReply({ content: 'Неверный channel_id.' });
@@ -95,20 +107,56 @@ export default class ReactionRolesCommand extends SlashCommand {
       orderBy: { createdAt: 'asc' },
     });
 
+    let managedMessage: Message | null = null;
+
+    if (specifiedMessageId) {
+      managedMessage = await (targetChannel as GuildTextBasedChannel).messages
+        .fetch(specifiedMessageId)
+        .catch(() => null);
+    }
+
+    if (!managedMessage) {
+      managedMessage = await getManagedMessage(
+        botClient,
+        guild,
+        existing?.channelId,
+        existing?.messageId,
+      );
+    }
+
+    // Авто-поиск сообщения по заголовку эмбеда в канале, если оно не было найдено в БД
+    if (!managedMessage) {
+      const recentMessages = await (
+        targetChannel as GuildTextBasedChannel
+      ).messages
+        .fetch({ limit: 30 })
+        .catch(() => null);
+
+      if (recentMessages) {
+        managedMessage =
+          recentMessages.find(
+            (m) =>
+              m.author.id === botClient.user?.id &&
+              m.embeds.some((e) =>
+                e.title?.toLowerCase().includes('роли по реакциям'),
+              ),
+          ) ?? null;
+      }
+    }
+
     let mappings = toMappingsRecord(existing?.mappings);
 
-    let managedMessage = await getManagedMessage(
-      botClient,
-      guild,
-      existing?.channelId,
-      existing?.messageId,
-    );
+    if (managedMessage?.embeds[0]?.description) {
+      const parsedFromEmbed = parseMappingsFromText(
+        managedMessage.embeds[0].description,
+      );
+      mappings = { ...parsedFromEmbed, ...mappings };
+    }
 
     if (!managedMessage || managedMessage.channelId !== targetChannelId) {
       managedMessage = await (targetChannel as GuildTextBasedChannel).send(
         'Инициализация reaction roles...',
       );
-      mappings = toMappingsRecord(existing?.mappings);
     }
 
     const saved = existing
@@ -486,4 +534,32 @@ async function getManagedMessage(
     );
   }
   return message;
+}
+
+function parseMappingsFromText(
+  text: string,
+): Record<string, { roleId: string; emojiDisplay: string }> {
+  const mappings: Record<string, { roleId: string; emojiDisplay: string }> = {};
+  if (!text) return mappings;
+
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    const match = line
+      .trim()
+      .match(
+        /^(<a?:[a-zA-Z0-9_]{2,32}:\d{17,20}>|.+?)\s*[-—–=]\s*<@&(\d{17,20})>$/,
+      );
+
+    if (match) {
+      const display = match[1].trim();
+      const roleId = match[2].trim();
+      const customMatch = display.match(
+        /^<(a?):([a-zA-Z0-9_]{2,32}):(\d{17,20})>$/,
+      );
+      const key = customMatch ? customMatch[3] : display;
+      mappings[key] = { roleId, emojiDisplay: display };
+    }
+  }
+
+  return mappings;
 }
