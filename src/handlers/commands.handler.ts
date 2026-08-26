@@ -27,25 +27,28 @@ export class CommandsHandler {
   ): Promise<ApplicationCommandDataResolvable[]> {
     if (!(await lstat(dir)).isDirectory()) {
       // eslint-disable-next-line new-cap
-      const command = new (await import(dir)).default();
+      const commandClass = (await import(dir)).default;
+      if (!commandClass || typeof commandClass !== 'function') {
+        return dataArray;
+      }
+
+      const command = new commandClass();
 
       if (command instanceof SlashCommand) {
         if (botClient) {
           botClient.slashCommands.set(command.data.name, command);
           this.logger.info(`🔧 Loaded ${command.data.name} slash command`);
         }
-      }
-
-      if (command instanceof ContextMenuCommand) {
+        dataArray.push(command.data);
+      } else if (command instanceof ContextMenuCommand) {
         if (botClient) {
           botClient.contextMenuCommands.set(command.data.name, command);
           this.logger.info(
             `🔧 Loaded ${command.data.name} context menu command`,
           );
         }
+        dataArray.push(command.data);
       }
-
-      dataArray.push(command.data);
 
       return dataArray;
     }
