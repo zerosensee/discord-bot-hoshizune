@@ -5,7 +5,7 @@ import { ContextMenuCommand, SlashCommand } from '@/base';
 import { CommandsHandler, EventsHandler } from '@/handlers';
 import { createLogger, env } from '@/utils';
 
-import { Database } from './services';
+import { Database, PresenceService } from './services';
 import { StatsService } from './services/stats.service';
 
 export class BotClient extends Client<true> {
@@ -20,6 +20,7 @@ export class BotClient extends Client<true> {
   public readonly database: Database;
   public readonly nekosBest: NekosBest;
   public readonly statsService: StatsService;
+  public readonly presenceService: PresenceService;
 
   public constructor(
     options: ClientOptions,
@@ -31,6 +32,7 @@ export class BotClient extends Client<true> {
     this.database = database;
     this.nekosBest = nekosBest;
     this.statsService = new StatsService(this);
+    this.presenceService = new PresenceService(this);
   }
 
   public async startRest(): Promise<void> {
