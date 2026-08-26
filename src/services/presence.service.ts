@@ -1,4 +1,4 @@
-import { ActivityType, PresenceUpdateStatus } from 'discord.js';
+import { ActivityType, PresenceStatusData } from 'discord.js';
 
 import { BotClient } from '@/bot-client';
 
@@ -10,7 +10,7 @@ export interface ActivityItem {
   name: string;
   type: ActivityType;
   url?: string;
-  status?: PresenceUpdateStatus;
+  status?: PresenceStatusData;
 }
 
 /**
@@ -122,7 +122,7 @@ export class PresenceService {
           url: activity.url,
         },
       ],
-      status: activity.status || PresenceUpdateStatus.Online,
+      status: activity.status || 'online',
     });
   }
 
@@ -203,7 +203,7 @@ export class PresenceService {
     name: string,
     type: ActivityType,
     url?: string,
-    status?: PresenceUpdateStatus,
+    status?: PresenceStatusData,
   ): ActivityItem {
     const customItem: ActivityItem = {
       id: `custom_${Date.now()}`,
@@ -230,7 +230,7 @@ export class PresenceService {
     if (this.botClient.user) {
       this.botClient.user.setPresence({
         activities: [],
-        status: PresenceUpdateStatus.Online,
+        status: 'online',
       });
     }
     this.botClient.logger.info('Статус активности бота успешно сброшен.');
