@@ -507,6 +507,8 @@ export default class ReactionRolesCommand extends SlashCommand {
 
         if (!selectInteraction) return;
 
+        await selectInteraction.deferUpdate().catch(() => null);
+
         const rolesToRemove = new Set(selectInteraction.values);
         const updatedMappings = removeRolesFromMappings(
           currentMappings,
@@ -534,10 +536,10 @@ export default class ReactionRolesCommand extends SlashCommand {
           );
         }
 
-        await selectInteraction.reply({
+        await selectInteraction.followUp({
           flags: [MessageFlags.Ephemeral],
           content: `✅ Из выдачи по реакциям успешно удалено ролей: ${rolesToRemove.size}. Сами роли на сервере сохранены.`,
-        });
+        }).catch(() => null);
         return;
       }
 
@@ -764,6 +766,14 @@ export default class ReactionRolesCommand extends SlashCommand {
     parsedEmoji: ParsedEmoji,
     interactionResponder: any,
   ): Promise<void> {
+    if (!interactionResponder.deferred && !interactionResponder.replied) {
+      if (typeof interactionResponder.deferUpdate === 'function') {
+        await interactionResponder.deferUpdate().catch(() => null);
+      } else if (typeof interactionResponder.deferReply === 'function') {
+        await interactionResponder.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(() => null);
+      }
+    }
+
     const fresh = await botClient.database.reactionRoleMessage.findUnique({
       where: { id: recordId },
     });
@@ -807,10 +817,16 @@ export default class ReactionRolesCommand extends SlashCommand {
       toMappingsRecord(updated.mappings),
     );
 
-    await interactionResponder.reply({
-      flags: [MessageFlags.Ephemeral],
-      content: `Сохранено: ${parsedEmoji.display} -> <@&${role.id}>`,
-    });
+    if (typeof interactionResponder.followUp === 'function') {
+      await interactionResponder.followUp({
+        flags: [MessageFlags.Ephemeral],
+        content: `Сохранено: ${parsedEmoji.display} -> <@&${role.id}>`,
+      }).catch(() => null);
+    } else if (typeof interactionResponder.editReply === 'function') {
+      await interactionResponder.editReply({
+        content: `Сохранено: ${parsedEmoji.display} -> <@&${role.id}>`,
+      }).catch(() => null);
+    }
   }
 
   /**
