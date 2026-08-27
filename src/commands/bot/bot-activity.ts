@@ -4,9 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChatInputCommandInteraction,
-  ComponentType,
   EmbedBuilder,
-  InteractionContextType,
   MessageFlags,
   ModalBuilder,
   SlashCommandBuilder,
@@ -17,7 +15,7 @@ import {
 
 import { SlashCommand } from '@/base';
 import { BotClient } from '@/bot-client';
-import { COLORS, EMOJIS } from '@/shared/constants';
+import { COLORS, EMOJIS, USERS } from '@/shared/constants';
 
 /**
  * Команда управления активностью и статусом бота (доступна только владельцу).
@@ -27,21 +25,24 @@ export default class BotActivityCommand extends SlashCommand {
     super(
       new SlashCommandBuilder()
         .setName('bot_activity')
-        .setDescription('Управление активностью и статусом бота (Только владельцу)')
-        .setContexts([InteractionContextType.Guild]) as SlashCommandBuilder,
+        .setDescription('Управление активностью и статусом бота') as SlashCommandBuilder,
     );
   }
 
   /**
-   * Проверка прав владельца бота.
+   * Проверка прав владельца или разработчика бота.
    * @param botClient - Клиент бота
    * @param userId - ID пользователя Discord
-   * @returns true, если пользователь является владельцем приложения
+   * @returns true, если пользователь является владельцем или разработчиком
    */
   private async checkIsOwner(
     botClient: BotClient,
     userId: string,
   ): Promise<boolean> {
+    if (USERS.OWNER === userId || USERS.DEVELOPERS.includes(userId)) {
+      return true;
+    }
+
     const app = await botClient.application?.fetch().catch(() => null);
     if (!app) return false;
 
