@@ -22,15 +22,21 @@ export default class StatsCommand extends SlashCommand {
         .addSubcommand((subcommand) =>
           subcommand
             .setName('enable-disable')
-            .setDescription(
-              'Укажите канал для включения отчетов или оставьте пустым для отключения',
+            .setDescription('Включить или отключить ежедневную статистику')
+            .addStringOption((option) =>
+              option
+                .setName('status')
+                .setDescription('Выберите действие: Включить или Отключить')
+                .setRequired(true)
+                .addChoices(
+                  { name: '🟢 Включить', value: 'enable' },
+                  { name: '🔴 Отключить', value: 'disable' },
+                ),
             )
             .addChannelOption((option) =>
               option
                 .setName('channel')
-                .setDescription(
-                  'Текстовый канал (не указывайте, если хотите отключить статистику)',
-                )
+                .setDescription('Канал для отправки отчетов (нужен при включении)')
                 .setRequired(false),
             ),
         )
@@ -55,10 +61,11 @@ export default class StatsCommand extends SlashCommand {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === 'enable-disable') {
+      const statusAction = interaction.options.getString('status', true);
       const channel = interaction.options.getChannel('channel');
 
-      // Если параметр канала не передан — отключаем ежедневную статистику
-      if (!channel) {
+      if (statusAction === 'disable') {
+        // Отключаем ежедневную статистику
         await botClient.database.guild.upsert({
           where: { discordId: interaction.guildId! },
           update: { statsChannelId: null },
@@ -70,36 +77,47 @@ export default class StatsCommand extends SlashCommand {
         });
 
         await interaction.reply({
-          content: '🛑 Ежедневная статистика успешно **отключена** на этом сервере.',
+          content: '🔴 Ежедневная статистика успешно **отключена** на сервере.',
           flags: [MessageFlags.Ephemeral],
         });
         return;
       }
 
-      if (!(channel instanceof TextChannel)) {
+      if (statusAction === 'enable') {
+        if (!channel) {
+          await interaction.reply({
+            content:
+              '⚠️ Для включения статистики укажите текстовый канал в поле `channel`.',
+            flags: [MessageFlags.Ephemeral],
+          });
+          return;
+        }
+
+        if (!(channel instanceof TextChannel)) {
+          await interaction.reply({
+            content: '❌ Выбранный канал должен быть текстовым.',
+            flags: [MessageFlags.Ephemeral],
+          });
+          return;
+        }
+
+        // Включаем статистику и сохраняем канал в базу данных
+        await botClient.database.guild.upsert({
+          where: { discordId: interaction.guildId! },
+          update: { statsChannelId: channel.id },
+          create: {
+            discordId: interaction.guildId!,
+            statsChannelId: channel.id,
+            autoRole: [],
+          },
+        });
+
         await interaction.reply({
-          content: '❌ Выбранный канал должен быть текстовым.',
+          content: `🟢 Ежедневная статистика **включена**. Канал для отчетов: ${channel}`,
           flags: [MessageFlags.Ephemeral],
         });
         return;
       }
-
-      // Сохраняем ID канала в базу данных
-      await botClient.database.guild.upsert({
-        where: { discordId: interaction.guildId! },
-        update: { statsChannelId: channel.id },
-        create: {
-          discordId: interaction.guildId!,
-          statsChannelId: channel.id,
-          autoRole: [],
-        },
-      });
-
-      await interaction.reply({
-        content: `✅ Канал для ежедневной статистики успешно установлен: ${channel}`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      return;
     }
 
     if (subcommand === 'query') {
