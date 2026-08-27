@@ -1,4 +1,4 @@
-import { ActivityType, Events } from 'discord.js';
+import { Events } from 'discord.js';
 
 import { Event } from '@/base';
 
@@ -18,9 +18,12 @@ export default new Event(Events.ClientReady, true, (botClient) => {
     );
   }
 
-  botClient.user.setActivity({
-    type: ActivityType.Streaming,
-    name: 'Yanima.Space',
-    url: 'https://www.twitch.tv/yanimaspace',
-  });
+  // Запуск начальной активности через наш PresenceService
+  const initialPreset =
+    botClient.presenceService.presets.find((p) => p.id === 'yanima_stream') ||
+    botClient.presenceService.presets[0];
+
+  if (initialPreset) {
+    botClient.presenceService.setActivity(initialPreset);
+  }
 });
