@@ -24,7 +24,16 @@ export class PresenceService {
   private currentActivity: ActivityItem | null = null;
 
   /**
-   * Предустановленный набор популярных игр и системных активностей.
+   * Список доступных статусов индикаторов присутствия для Mix-режима.
+   */
+  private readonly availableStatuses: PresenceStatusData[] = [
+    'online',
+    'idle',
+    'dnd',
+  ];
+
+  /**
+   * Предустановленный набор популярных игр, каомодзи и системных активностей.
    */
   public readonly presets: ActivityItem[] = [
     {
@@ -68,6 +77,32 @@ export class PresenceService {
       type: ActivityType.Playing,
     },
     {
+      id: 'kaomoji_shrug',
+      name: '¯\\_(ツ)_/¯',
+      type: ActivityType.Custom,
+    },
+    {
+      id: 'kaomoji_happy',
+      name: '(* ^ ω ^)',
+      type: ActivityType.Custom,
+    },
+    {
+      id: 'kaomoji_joy',
+      name: '(＾▽＾)',
+      type: ActivityType.Custom,
+    },
+    {
+      id: 'kaomoji_purple',
+      name: '🫸🔴🔵🫷🫴🟣',
+      type: ActivityType.Custom,
+    },
+    {
+      id: 'yanima_stream',
+      name: 'Yanima.space',
+      type: ActivityType.Streaming,
+      url: 'https://www.twitch.tv/yanima_space',
+    },
+    {
       id: 'radio',
       name: 'Hoshizune Radio 🎵',
       type: ActivityType.Listening,
@@ -76,12 +111,6 @@ export class PresenceService {
       id: 'anime',
       name: 'Аниме новинки 📺',
       type: ActivityType.Watching,
-    },
-    {
-      id: 'twitch_live',
-      name: 'Hoshizune Live Stream 🟣',
-      type: ActivityType.Streaming,
-      url: 'https://www.twitch.tv/hoshizune',
     },
     {
       id: 'servers',
@@ -110,9 +139,16 @@ export class PresenceService {
   /**
    * Применение активности к клиенту Discord.
    * @param activity - Объект активности
+   * @param overrideStatus - Переопределение индикатора сети (online, idle, dnd)
    */
-  private applyActivity(activity: ActivityItem): void {
+  private applyActivity(
+    activity: ActivityItem,
+    overrideStatus?: PresenceStatusData,
+  ): void {
     if (!this.botClient.user) return;
+
+    const isCustom = activity.type === ActivityType.Custom;
+    const finalStatus = overrideStatus || activity.status || 'online';
 
     this.botClient.user.setPresence({
       activities: [
@@ -120,14 +156,15 @@ export class PresenceService {
           name: activity.name,
           type: activity.type,
           url: activity.url,
+          state: isCustom ? activity.name : undefined,
         },
       ],
-      status: activity.status || 'online',
+      status: finalStatus,
     });
   }
 
   /**
-   * Включение автоматического Mix-режима случайной смены активностей.
+   * Включение автоматического Mix-режима случайной смены активностей и статусов.
    * Смена происходит раз в 10 минут во избежание лимитов Discord API.
    */
   public startMixMode(): void {
@@ -135,7 +172,7 @@ export class PresenceService {
 
     this.isMixActive = true;
     this.botClient.logger.info(
-      'Запущен автоматический Mix-режим регулярной смены активностей бота.',
+      'Запущен автоматический Mix-режим регулярной смены активностей и статусов бота.',
     );
 
     this.rotateActivity();
@@ -175,19 +212,24 @@ export class PresenceService {
   }
 
   /**
-   * Ротация случайной активности из пула предустановленных и пользовательских активностей.
+   * Ротация случайной активности и случайного индикатора сети из пула.
    */
   public rotateActivity(): void {
     const allPool = [...this.presets, ...this.customActivities];
     if (allPool.length === 0) return;
 
-    const randomIndex = Math.floor(Math.random() * allPool.length);
-    const selected = allPool[randomIndex];
+    const randomActivityIndex = Math.floor(Math.random() * allPool.length);
+    const selectedActivity = allPool[randomActivityIndex];
 
-    this.applyActivity(selected);
-    this.currentActivity = selected;
+    const randomStatusIndex = Math.floor(
+      Math.random() * this.availableStatuses.length,
+    );
+    const selectedStatus = this.availableStatuses[randomStatusIndex];
+
+    this.applyActivity(selectedActivity, selectedStatus);
+    this.currentActivity = selectedActivity;
     this.botClient.logger.info(
-      `[Mix-режим] Автоматическая смена активности на: "${selected.name}"`,
+      `[Mix-режим] Автосмена активности: "${selectedActivity.name}" (Статус сети: ${selectedStatus})`,
     );
   }
 

@@ -265,7 +265,8 @@ export default class BotActivityCommand extends SlashCommand {
         const urlInput = modalSubmit.fields.getTextInputValue('url').trim();
 
         let type = ActivityType.Playing;
-        if (typeInputRaw.includes('stream')) type = ActivityType.Streaming;
+        if (typeInputRaw.includes('custom')) type = ActivityType.Custom;
+        else if (typeInputRaw.includes('stream')) type = ActivityType.Streaming;
         else if (typeInputRaw.includes('listen')) type = ActivityType.Listening;
         else if (typeInputRaw.includes('watch')) type = ActivityType.Watching;
         else if (typeInputRaw.includes('compete')) type = ActivityType.Competing;
