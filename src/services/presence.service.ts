@@ -24,16 +24,27 @@ export class PresenceService {
   private currentActivity: ActivityItem | null = null;
 
   /**
-   * Список доступных статусов индикаторов присутствия для Mix-режима.
+   * Список индикаторов сети (онлайн, неактивен, не беспокоить, невидимый).
    */
   private readonly availableStatuses: PresenceStatusData[] = [
     'online',
     'idle',
     'dnd',
+    'invisible',
   ];
 
   /**
-   * Предустановленный набор популярных игр, каомодзи и системных активностей.
+   * Каомодзи и пользовательские статусы для вращения в Mix-режиме.
+   */
+  private readonly kaomojiStatuses: ActivityItem[] = [
+    { id: 'kao_1', name: '¯\\_(ツ)_/¯', type: ActivityType.Custom },
+    { id: 'kao_2', name: '(* ^ ω ^)', type: ActivityType.Custom },
+    { id: 'kao_3', name: '(＾▽＾)', type: ActivityType.Custom },
+    { id: 'kao_4', name: '🫸🔴🔵🫷🫴🟣', type: ActivityType.Custom },
+  ];
+
+  /**
+   * Предустановленный набор популярных игр и системных активностей (для селектора).
    */
   public readonly presets: ActivityItem[] = [
     {
@@ -77,26 +88,6 @@ export class PresenceService {
       type: ActivityType.Playing,
     },
     {
-      id: 'kaomoji_shrug',
-      name: '¯\\_(ツ)_/¯',
-      type: ActivityType.Custom,
-    },
-    {
-      id: 'kaomoji_happy',
-      name: '(* ^ ω ^)',
-      type: ActivityType.Custom,
-    },
-    {
-      id: 'kaomoji_joy',
-      name: '(＾▽＾)',
-      type: ActivityType.Custom,
-    },
-    {
-      id: 'kaomoji_purple',
-      name: '🫸🔴🔵🫷🫴🟣',
-      type: ActivityType.Custom,
-    },
-    {
       id: 'yanima_stream',
       name: 'Yanima.space',
       type: ActivityType.Streaming,
@@ -137,9 +128,9 @@ export class PresenceService {
   }
 
   /**
-   * Применение активности к клиенту Discord.
+   * Применение активности и статуса сети к клиенту Discord.
    * @param activity - Объект активности
-   * @param overrideStatus - Переопределение индикатора сети (online, idle, dnd)
+   * @param overrideStatus - Переопределение индикатора сети (online, idle, dnd, invisible)
    */
   private applyActivity(
     activity: ActivityItem,
@@ -164,7 +155,7 @@ export class PresenceService {
   }
 
   /**
-   * Включение автоматического Mix-режима случайной смены активностей и статусов.
+   * Включение автоматического Mix-режима случайной смены активностей и статусов сети.
    * Смена происходит раз в 10 минут во избежание лимитов Discord API.
    */
   public startMixMode(): void {
@@ -172,7 +163,7 @@ export class PresenceService {
 
     this.isMixActive = true;
     this.botClient.logger.info(
-      'Запущен автоматический Mix-режим регулярной смены активностей и статусов бота.',
+      'Запущен автоматический Mix-режим регулярной смены активностей и статусов сети.',
     );
 
     this.rotateActivity();
@@ -212,14 +203,19 @@ export class PresenceService {
   }
 
   /**
-   * Ротация случайной активности и случайного индикатора сети из пула.
+   * Ротация случайной активности и случайного индикатора сети из всех доступных пулов.
    */
   public rotateActivity(): void {
-    const allPool = [...this.presets, ...this.customActivities];
-    if (allPool.length === 0) return;
+    const fullMixPool = [
+      ...this.presets,
+      ...this.kaomojiStatuses,
+      ...this.customActivities,
+    ];
 
-    const randomActivityIndex = Math.floor(Math.random() * allPool.length);
-    const selectedActivity = allPool[randomActivityIndex];
+    if (fullMixPool.length === 0) return;
+
+    const randomActivityIndex = Math.floor(Math.random() * fullMixPool.length);
+    const selectedActivity = fullMixPool[randomActivityIndex];
 
     const randomStatusIndex = Math.floor(
       Math.random() * this.availableStatuses.length,
