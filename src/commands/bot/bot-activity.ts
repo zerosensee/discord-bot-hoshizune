@@ -82,7 +82,7 @@ export default class BotActivityCommand extends SlashCommand {
       const current = presenceService.getCurrentActivity();
 
       const statusText = isMix
-        ? '🔄 **Mix-режим включен** (автоматическая смена раз в 10 минут)'
+        ? '🔄 **Mix-режим включен** (автоматическая случайная смена каждые 5–30 секунд)'
         : current
           ? `📌 **Текущая активность:** ${current.name}`
           : '⚪ **Стандартный статус**';
@@ -194,7 +194,7 @@ export default class BotActivityCommand extends SlashCommand {
         await i.followUp({
           flags: [MessageFlags.Ephemeral],
           content: newMixState
-            ? '🔄 **Mix-режим запущен!** Активности бота сменяются каждые 10 минут.'
+            ? '🔄 **Mix-режим запущен!** Активности и статусы бота случайно сменяются каждые 5–30 секунд.'
             : '🛑 **Mix-режим остановлен.**',
         });
         return;

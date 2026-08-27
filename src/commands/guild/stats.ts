@@ -32,6 +32,11 @@ export default class StatsCommand extends SlashCommand {
         )
         .addSubcommand((subcommand) =>
           subcommand
+            .setName('disable')
+            .setDescription('Отключить ежедневные отчеты статистики'),
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
             .setName('query')
             .setDescription('Получить статистику за указанный период')
             .addIntegerOption((option) =>
@@ -74,6 +79,24 @@ export default class StatsCommand extends SlashCommand {
 
       await interaction.reply({
         content: `✅ Канал для ежедневной статистики успешно установлен: ${channel}`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      return;
+    }
+
+    if (subcommand === 'disable') {
+      await botClient.database.guild.upsert({
+        where: { discordId: interaction.guildId! },
+        update: { statsChannelId: null },
+        create: {
+          discordId: interaction.guildId!,
+          statsChannelId: null,
+          autoRole: [],
+        },
+      });
+
+      await interaction.reply({
+        content: '✅ Ежедневные отчеты статистики успешно отключены на сервере.',
         flags: [MessageFlags.Ephemeral],
       });
       return;
