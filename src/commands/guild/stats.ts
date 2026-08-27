@@ -21,19 +21,18 @@ export default class StatsCommand extends SlashCommand {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand((subcommand) =>
           subcommand
-            .setName('setup')
-            .setDescription('Настройка канала для ежедневных отчетов')
+            .setName('enable-disable')
+            .setDescription(
+              'Укажите канал для включения отчетов или оставьте пустым для отключения',
+            )
             .addChannelOption((option) =>
               option
                 .setName('channel')
-                .setDescription('Канал для отправки ежедневных отчетов')
-                .setRequired(true),
+                .setDescription(
+                  'Текстовый канал (не указывайте, если хотите отключить статистику)',
+                )
+                .setRequired(false),
             ),
-        )
-        .addSubcommand((subcommand) =>
-          subcommand
-            .setName('disable')
-            .setDescription('Отключить ежедневные отчеты статистики'),
         )
         .addSubcommand((subcommand) =>
           subcommand
@@ -55,8 +54,27 @@ export default class StatsCommand extends SlashCommand {
   ): Promise<void> {
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === 'setup') {
-      const channel = interaction.options.getChannel('channel', true);
+    if (subcommand === 'enable-disable') {
+      const channel = interaction.options.getChannel('channel');
+
+      // Если параметр канала не передан — отключаем ежедневную статистику
+      if (!channel) {
+        await botClient.database.guild.upsert({
+          where: { discordId: interaction.guildId! },
+          update: { statsChannelId: null },
+          create: {
+            discordId: interaction.guildId!,
+            statsChannelId: null,
+            autoRole: [],
+          },
+        });
+
+        await interaction.reply({
+          content: '🛑 Ежедневная статистика успешно **отключена** на этом сервере.',
+          flags: [MessageFlags.Ephemeral],
+        });
+        return;
+      }
 
       if (!(channel instanceof TextChannel)) {
         await interaction.reply({
@@ -79,24 +97,6 @@ export default class StatsCommand extends SlashCommand {
 
       await interaction.reply({
         content: `✅ Канал для ежедневной статистики успешно установлен: ${channel}`,
-        flags: [MessageFlags.Ephemeral],
-      });
-      return;
-    }
-
-    if (subcommand === 'disable') {
-      await botClient.database.guild.upsert({
-        where: { discordId: interaction.guildId! },
-        update: { statsChannelId: null },
-        create: {
-          discordId: interaction.guildId!,
-          statsChannelId: null,
-          autoRole: [],
-        },
-      });
-
-      await interaction.reply({
-        content: '✅ Ежедневные отчеты статистики успешно отключены на сервере.',
         flags: [MessageFlags.Ephemeral],
       });
       return;
