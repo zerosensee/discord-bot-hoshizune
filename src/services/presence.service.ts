@@ -18,15 +18,15 @@ export interface ActivityItem {
  */
 export class PresenceService {
   private readonly botClient: BotClient;
-  private mixTimer: NodeJS.Timeout | null = null;
+  private mixTimeout: NodeJS.Timeout | null = null;
   private isMixActive = false;
   private customActivities: ActivityItem[] = [];
   private currentActivity: ActivityItem | null = null;
 
   /**
-   * Список индикаторов сети (онлайн, неактивен, не беспокоить, невидимый).
+   * Доступные индикаторы состояния сети.
    */
-  private readonly availableStatuses: PresenceStatusData[] = [
+  private readonly networkStatuses: PresenceStatusData[] = [
     'online',
     'idle',
     'dnd',
@@ -34,9 +34,9 @@ export class PresenceService {
   ];
 
   /**
-   * Каомодзи и пользовательские статусы для вращения в Mix-режиме.
+   * Каомодзи и кастомные текстовые статусы для Mix-режима.
    */
-  private readonly kaomojiStatuses: ActivityItem[] = [
+  private readonly kaomojiActivities: ActivityItem[] = [
     { id: 'kao_1', name: '¯\\_(ツ)_/¯', type: ActivityType.Custom },
     { id: 'kao_2', name: '(* ^ ω ^)', type: ActivityType.Custom },
     { id: 'kao_3', name: '(＾▽＾)', type: ActivityType.Custom },
@@ -44,69 +44,14 @@ export class PresenceService {
   ];
 
   /**
-   * Предустановленный набор популярных игр и системных активностей (для селектора).
+   * Единственная стандартная активность (Стрим Yanima.space).
    */
   public readonly presets: ActivityItem[] = [
-    {
-      id: 'dota2',
-      name: 'Dota 2',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'cs2',
-      name: 'Counter-Strike 2',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'pubg',
-      name: 'PUBG: BATTLEGROUNDS',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'minecraft',
-      name: 'Minecraft',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'gta5',
-      name: 'Grand Theft Auto V',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'genshin',
-      name: 'Genshin Impact',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'valorant',
-      name: 'VALORANT',
-      type: ActivityType.Playing,
-    },
-    {
-      id: 'league',
-      name: 'League of Legends',
-      type: ActivityType.Playing,
-    },
     {
       id: 'yanima_stream',
       name: 'Yanima.space',
       type: ActivityType.Streaming,
-      url: 'https://www.twitch.tv/yanima_space',
-    },
-    {
-      id: 'radio',
-      name: 'Hoshizune Radio 🎵',
-      type: ActivityType.Listening,
-    },
-    {
-      id: 'anime',
-      name: 'Аниме новинки 📺',
-      type: ActivityType.Watching,
-    },
-    {
-      id: 'servers',
-      name: 'за серверами Hoshizune 🌐',
-      type: ActivityType.Watching,
+      url: 'https://www.twitch.tv/yanimaspace',
     },
   ];
 
@@ -123,14 +68,14 @@ export class PresenceService {
     this.applyActivity(activity);
     this.currentActivity = activity;
     this.botClient.logger.info(
-      `Установлена активная деятельность бота: "${activity.name}" (Тип: ${activity.type})`,
+      `Установлена активность: "${activity.name}" (Тип: ${activity.type})`,
     );
   }
 
   /**
-   * Применение активности и статуса сети к клиенту Discord.
+   * Применение активности и индикатора сети в Discord Client.
    * @param activity - Объект активности
-   * @param overrideStatus - Переопределение индикатора сети (online, idle, dnd, invisible)
+   * @param overrideStatus - Статус сети (online, idle, dnd, invisible)
    */
   private applyActivity(
     activity: ActivityItem,
@@ -155,43 +100,53 @@ export class PresenceService {
   }
 
   /**
-   * Включение автоматического Mix-режима случайной смены активностей и статусов сети.
-   * Смена происходит раз в 10 минут во избежание лимитов Discord API.
+   * Запуск автоматического Mix-режима смены активностей и статусов сети.
+   * Использует динамический интервал смены (5–30 секунд).
    */
   public startMixMode(): void {
     if (this.isMixActive) return;
 
     this.isMixActive = true;
     this.botClient.logger.info(
-      'Запущен автоматический Mix-режим регулярной смены активностей и статусов сети.',
+      '🔄 Запущен Mix-режим динамической смены активностей и статусов сети.',
     );
 
-    this.rotateActivity();
-
-    this.mixTimer = setInterval(() => {
-      this.rotateActivity();
-    }, 10 * 60 * 1000);
+    this.scheduleNextMixTick();
   }
 
   /**
-   * Остановка Mix-режима смены активностей.
+   * Планирование следующего шага ротации в Mix-режиме со случайной задержкой 5-30 сек.
+   */
+  private scheduleNextMixTick(): void {
+    if (!this.isMixActive) return;
+
+    this.rotateActivity();
+
+    const randomDelay =
+      Math.floor(Math.random() * (30000 - 5000 + 1)) + 5000;
+
+    this.mixTimeout = setTimeout(() => {
+      this.scheduleNextMixTick();
+    }, randomDelay);
+  }
+
+  /**
+   * Остановка Mix-режима.
    */
   public stopMixMode(): void {
     if (!this.isMixActive) return;
 
-    if (this.mixTimer) {
-      clearInterval(this.mixTimer);
-      this.mixTimer = null;
+    if (this.mixTimeout) {
+      clearTimeout(this.mixTimeout);
+      this.mixTimeout = null;
     }
     this.isMixActive = false;
-    this.botClient.logger.info(
-      'Автоматический Mix-режим смены активностей остановлен.',
-    );
+    this.botClient.logger.info('🛑 Mix-режим смены активностей остановлен.');
   }
 
   /**
    * Переключение состояния Mix-режима.
-   * @returns Флаг активности Mix-режима
+   * @returns Текущий флаг Mix-режима
    */
   public toggleMixMode(): boolean {
     if (this.isMixActive) {
@@ -203,38 +158,37 @@ export class PresenceService {
   }
 
   /**
-   * Ротация случайной активности и случайного индикатора сети из всех доступных пулов.
+   * Ротация случайной активности и индикатора сети из всех активностей (игры, стрим, каомодзи, свои).
    */
   public rotateActivity(): void {
-    const fullMixPool = [
+    const fullPool = [
       ...this.presets,
-      ...this.kaomojiStatuses,
+      ...this.kaomojiActivities,
       ...this.customActivities,
     ];
 
-    if (fullMixPool.length === 0) return;
+    if (fullPool.length === 0) return;
 
-    const randomActivityIndex = Math.floor(Math.random() * fullMixPool.length);
-    const selectedActivity = fullMixPool[randomActivityIndex];
+    const randomActivity =
+      fullPool[Math.floor(Math.random() * fullPool.length)];
+    const randomStatus =
+      this.networkStatuses[
+        Math.floor(Math.random() * this.networkStatuses.length)
+      ];
 
-    const randomStatusIndex = Math.floor(
-      Math.random() * this.availableStatuses.length,
-    );
-    const selectedStatus = this.availableStatuses[randomStatusIndex];
-
-    this.applyActivity(selectedActivity, selectedStatus);
-    this.currentActivity = selectedActivity;
+    this.applyActivity(randomActivity, randomStatus);
+    this.currentActivity = randomActivity;
     this.botClient.logger.info(
-      `[Mix-режим] Автосмена активности: "${selectedActivity.name}" (Статус сети: ${selectedStatus})`,
+      `[Mix-режим] Активность: "${randomActivity.name}" | Сеть: [${randomStatus}]`,
     );
   }
 
   /**
-   * Добавление пользовательской активности в систему.
+   * Добавление пользовательской активности.
    * @param name - Название активности
    * @param type - Тип активности
-   * @param url - Ссылка для стриминга (необязательно)
-   * @param status - Статус присутствия
+   * @param url - Ссылка на стрим
+   * @param status - Статус сети
    * @returns Созданный объект активности
    */
   public addCustomActivity(
@@ -254,28 +208,30 @@ export class PresenceService {
     this.customActivities.push(customItem);
     this.setActivity(customItem);
     this.botClient.logger.info(
-      `Добавлена пользовательская активность: "${name}" (ID: ${customItem.id})`,
+      `Добавлена своя активность: "${name}" (ID: ${customItem.id})`,
     );
     return customItem;
   }
 
   /**
-   * Сброс активности бота к стандартному состоянию.
+   * Сброс активности бота к стандартному состоянию (Стрим Yanima.space, статус online).
    */
   public resetPresence(): void {
     this.stopMixMode();
-    this.currentActivity = null;
-    if (this.botClient.user) {
+    const defaultPreset = this.presets[0];
+    if (defaultPreset) {
+      this.setActivity(defaultPreset);
+    } else if (this.botClient.user) {
       this.botClient.user.setPresence({
         activities: [],
         status: 'online',
       });
     }
-    this.botClient.logger.info('Статус активности бота успешно сброшен.');
+    this.botClient.logger.info('Статус активности бота сброшен к стандартному.');
   }
 
   /**
-   * Получение текущего состояния Mix-режима.
+   * Получение состояния Mix-режима.
    */
   public getIsMixActive(): boolean {
     return this.isMixActive;

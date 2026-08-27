@@ -258,8 +258,6 @@ export default class BotActivityCommand extends SlashCommand {
 
         if (!modalSubmit) return;
 
-        await modalSubmit.deferUpdate().catch(() => null);
-
         const nameInput = modalSubmit.fields.getTextInputValue('name').trim();
         const typeInputRaw = modalSubmit.fields.getTextInputValue('type').trim().toLowerCase();
         const urlInput = modalSubmit.fields.getTextInputValue('url').trim();
@@ -277,7 +275,7 @@ export default class BotActivityCommand extends SlashCommand {
           urlInput || undefined,
         );
 
-        await modalSubmit.editReply({
+        await modalSubmit.update({
           embeds: [buildEmbed()],
           components: buildComponents(),
         });
