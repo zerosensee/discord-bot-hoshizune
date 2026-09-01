@@ -1,5 +1,7 @@
 # 🤖 discord-bot-hoshizune
 
+<img width="2160" height="2440" alt="hoshizune_terminal" src="https://github.com/user-attachments/assets/5a73d878-e0b9-48d2-ba1e-24a53b0a3771" />
+
 Discord бот на TypeScript с поддержкой выдачи ролей по эмодзи реакциям, автовыдачей ролей, расширенной статистикой и изолированной архитектурой базы данных.
 
 ## ✨ Функции
