@@ -43,8 +43,8 @@ yarn dev
 
 Создай `.env` файл на основе `.env.example`:
 ```env
-DISCORD_TOKEN=твой_токен
-CLIENT_ID=твой_id
+DISCORD_TOKEN=бот_токен
+CLIENT_ID=бот_id
 POSTGRES_PORT=2406
 DATABASE_URL="postgresql://postgres:postgres@localhost:2406/discord_bot_hoshizune?schema=public"
 ```
