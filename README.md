@@ -43,7 +43,7 @@ yarn dev
 
 ## 📋 Конфигурация
 
-Создай `.env` файл на основе `.env.example`:
+Создаём `.env` файл на основе `.env.example`:
 ```env
 DISCORD_TOKEN=бот_токен
 CLIENT_ID=бот_id
